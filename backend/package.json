@@ -1,11 +1,13 @@
 {
-  "name": "vending-machine-backend",
+  "name": "vending-machine-fullstack",
   "version": "1.0.0",
-  "description": "Backend for Vending Machine application",
+  "description": "Full-stack Vending Machine application",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "build": "cd ../frontend && npm install && npm run build",
+    "start": "npm run build && node server.js",
+    "dev": "nodemon server.js",
+    "postinstall": "cd ../frontend && npm install"
   },
   "keywords": [],
   "author": "",
