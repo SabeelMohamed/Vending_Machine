@@ -105,6 +105,18 @@ router.post('/generate-otp', protect, async (req, res) => {
       console.log('Received OTP from ESP32:', otp);
     } catch (otpError) {
       console.error('Error requesting OTP from ESP32:', otpError.message);
+      console.error('Full error:', otpError);
+      
+      // Check if it's a timeout error
+      if (otpError.message.includes('did not respond')) {
+        return res.status(503).json({
+          success: false,
+          message: 'Hardware timeout: ESP32 did not respond. Please check hardware connection and try again.',
+          error: otpError.message,
+          hardwareStatus: await getHardwareStatus()
+        });
+      }
+      
       return res.status(500).json({
         success: false,
         message: 'Failed to generate OTP from hardware. Please try again.',
@@ -288,6 +300,39 @@ router.get('/hardware-status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to check hardware status',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/offline-payment/clear-otp
+// @desc    Clear stale OTP data from Firebase (for debugging)
+// @access  Private
+router.post('/clear-otp', protect, async (req, res) => {
+  try {
+    const { db } = require('../config/firebase');
+    
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firebase not initialized'
+      });
+    }
+    
+    console.log('Clearing stale OTP data...');
+    await db.ref('live_otp').set(null);
+    await db.ref('otp_request/generate').set(null);
+    await db.ref('live_otp_metadata').set(null);
+    
+    res.status(200).json({
+      success: true,
+      message: 'OTP data cleared successfully'
+    });
+  } catch (error) {
+    console.error('Clear OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear OTP data',
       error: error.message
     });
   }

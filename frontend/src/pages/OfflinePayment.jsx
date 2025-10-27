@@ -128,7 +128,11 @@ const OfflinePayment = () => {
           setCooldownTime(data.remainingTime || 30)
           setError(data.message)
         } else if (response.status === 503) {
-          setError('Hardware not connected. Please ensure the vending machine is online.')
+          if (data.message.includes('timeout')) {
+            setError('Hardware timeout: ESP32 did not respond. Please check hardware connection.')
+          } else {
+            setError('Hardware not connected. Please ensure the vending machine is online.')
+          }
         } else {
           setError(data.message || 'Failed to generate OTP')
         }

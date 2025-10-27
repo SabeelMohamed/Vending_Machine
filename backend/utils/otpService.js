@@ -13,21 +13,38 @@ const requestOTPFromESP32 = async () => {
   }
   
   try {
+    console.log('Clearing previous OTP data...');
+    // Clear any previous OTP data
+    await db.ref('live_otp').set(null);
+    await db.ref('otp_request/generate').set(null);
+    
+    // Wait a moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('Requesting new OTP from ESP32...');
     // Set request flag to trigger ESP32
     await db.ref('otp_request/generate').set(true);
     
-    // Wait for ESP32 to generate and send OTP (max 5 seconds)
+    // Wait for ESP32 to generate and send OTP (max 10 seconds)
     let attempts = 0;
-    const maxAttempts = 50; // 5 seconds (50 * 100ms)
+    const maxAttempts = 100; // 10 seconds (100 * 100ms)
     
     while (attempts < maxAttempts) {
       const otpSnapshot = await db.ref('live_otp').once('value');
       const otpData = otpSnapshot.val();
       
-      // Check if OTP was updated recently (within last 10 seconds)
+      console.log(`Attempt ${attempts + 1}: Checking for OTP...`, otpData);
+      
+      // Check if OTP was updated recently (within last 30 seconds)
       if (otpData && typeof otpData === 'string' && otpData.length === 6) {
-        console.log('OTP received from ESP32');
+        console.log('OTP received from ESP32:', otpData);
         return otpData;
+      }
+      
+      // Also check if it's an object with otp property
+      if (otpData && typeof otpData === 'object' && otpData.otp && typeof otpData.otp === 'string' && otpData.otp.length === 6) {
+        console.log('OTP received from ESP32 (object format):', otpData.otp);
+        return otpData.otp;
       }
       
       // Wait 100ms before checking again
@@ -35,8 +52,9 @@ const requestOTPFromESP32 = async () => {
       attempts++;
     }
     
-    throw new Error('ESP32 did not respond with OTP. Please ensure hardware is connected.');
+    throw new Error('ESP32 did not respond with OTP within 10 seconds. Please ensure hardware is connected and try again.');
   } catch (error) {
+    console.error('Error in requestOTPFromESP32:', error);
     throw new Error('Failed to get OTP from ESP32: ' + error.message);
   }
 };
