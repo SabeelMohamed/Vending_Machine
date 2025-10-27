@@ -19,7 +19,7 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('https://vending-machine-app.onrender.com/api/auth/login', {
+      const response = await fetch('https://vending-machine-r93c.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

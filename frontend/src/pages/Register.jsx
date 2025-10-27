@@ -42,7 +42,7 @@ const Register = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('https://vending-machine-app.onrender.com/api/auth/signup', {
+      const response = await fetch('https://vending-machine-r93c.onrender.com/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -45,7 +45,7 @@ const OfflinePayment = () => {
   
   const checkHardwareStatus = async () => {
     try {
-      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/hardware-status')
+      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/hardware-status')
       const data = await response.json()
       
       if (data.success) {
@@ -106,7 +106,7 @@ const OfflinePayment = () => {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/generate-otp', {
+      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/generate-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ const OfflinePayment = () => {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/verify-otp', {
+      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
