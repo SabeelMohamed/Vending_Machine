@@ -56,7 +56,7 @@ const AdminDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/products')
+      const response = await fetch('https://vending-machine-app.onrender.com/api/products')
       const data = await response.json()
       if (data.success) {
         setProducts(data.data)
@@ -69,7 +69,7 @@ const AdminDashboard = () => {
   const fetchTransactions = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/transactions', {
+      const response = await fetch('https://vending-machine-app.onrender.com/api/transactions', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -86,7 +86,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/transactions/stats', {
+      const response = await fetch('https://vending-machine-app.onrender.com/api/transactions/stats', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`https://vending-machine-r93c.onrender.com/api/products/${id}`, {
+      const response = await fetch(`https://vending-machine-app.onrender.com/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -176,8 +176,8 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token')
       const url = editingProduct 
-        ? `https://vending-machine-r93c.onrender.com/api/products/${editingProduct._id}`
-        : 'https://vending-machine-r93c.onrender.com/api/products'
+        ? `https://vending-machine-app.onrender.com/api/products/${editingProduct._id}`
+        : 'https://vending-machine-app.onrender.com/api/products'
       
       // Optimize: If image is a base64 that's too large, use placeholder
       let imageToUse = imagePreview || formData.image || 'https://via.placeholder.com/150'

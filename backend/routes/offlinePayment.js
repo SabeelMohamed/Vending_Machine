@@ -18,10 +18,17 @@ const { isESP32Online, getHardwareStatus } = require('../utils/hardwareStatus');
 // @access  Private
 router.post('/generate-otp', protect, async (req, res) => {
   try {
+    console.log('Generate OTP request received:', { 
+      userId: req.user._id.toString(), 
+      cartLength: req.body.cart?.length,
+      amount: req.body.amount 
+    });
+    
     const { cart, amount } = req.body;
     const userId = req.user._id.toString();
 
     if (!cart || cart.length === 0) {
+      console.log('Error: Cart is empty');
       return res.status(400).json({
         success: false,
         message: 'Cart is empty'
@@ -29,9 +36,13 @@ router.post('/generate-otp', protect, async (req, res) => {
     }
 
     // Check if ESP32 hardware is online
+    console.log('Checking hardware status...');
     const hardwareOnline = await isESP32Online();
+    console.log('Hardware online status:', hardwareOnline);
+    
     if (!hardwareOnline) {
       const hardwareStatus = await getHardwareStatus();
+      console.log('Hardware status:', hardwareStatus);
       return res.status(503).json({
         success: false,
         message: 'Hardware not connected. Please ensure the vending machine is online.',
@@ -88,15 +99,39 @@ router.post('/generate-otp', protect, async (req, res) => {
 
     // Request OTP from ESP32 (ESP32 generates TOTP using RTC)
     console.log('Requesting OTP from ESP32...');
-    const otp = await requestOTPFromESP32();
-    console.log('Received OTP from ESP32:', otp);
+    let otp;
+    try {
+      otp = await requestOTPFromESP32();
+      console.log('Received OTP from ESP32:', otp);
+    } catch (otpError) {
+      console.error('Error requesting OTP from ESP32:', otpError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate OTP from hardware. Please try again.',
+        error: otpError.message
+      });
+    }
 
     // Store OTP metadata in Firebase
-    const { timestamp, expiryTime } = await storeOTPInFirebase(userId, otp, {
-      amount,
-      products: transactionProducts,
-      orderId: transaction._id.toString()
-    });
+    console.log('Storing OTP in Firebase...');
+    let timestamp, expiryTime;
+    try {
+      const result = await storeOTPInFirebase(userId, otp, {
+        amount,
+        products: transactionProducts,
+        orderId: transaction._id.toString()
+      });
+      timestamp = result.timestamp;
+      expiryTime = result.expiryTime;
+      console.log('OTP stored in Firebase successfully');
+    } catch (firebaseError) {
+      console.error('Error storing OTP in Firebase:', firebaseError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to store OTP. Please try again.',
+        error: firebaseError.message
+      });
+    }
 
     // Prepare QR code data with Razorpay credentials for mobile app
     const qrData = {

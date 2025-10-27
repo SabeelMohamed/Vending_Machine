@@ -78,7 +78,7 @@ const Cart = () => {
 
       // Create order on backend
       const token = localStorage.getItem('token')
-      const orderResponse = await fetch('https://vending-machine-r93c.onrender.com/api/payment/create-order', {
+      const orderResponse = await fetch('https://vending-machine-app.onrender.com/api/payment/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ const Cart = () => {
         handler: async function (response) {
           // Verify payment on backend
           try {
-            const verifyResponse = await fetch('https://vending-machine-r93c.onrender.com/api/payment/verify', {
+            const verifyResponse = await fetch('https://vending-machine-app.onrender.com/api/payment/verify', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

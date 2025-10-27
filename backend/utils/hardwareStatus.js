@@ -7,6 +7,7 @@ const { db } = require('../config/firebase');
  */
 const isESP32Online = async () => {
   if (!db) {
+    console.log('Firebase not initialized, hardware is offline');
     return false;
   }
 
@@ -16,6 +17,7 @@ const isESP32Online = async () => {
     const status = snapshot.val();
 
     if (!status) {
+      console.log('No hardware status found, hardware is offline');
       return false;
     }
 
@@ -47,7 +49,8 @@ const getHardwareStatus = async () => {
   if (!db) {
     return {
       online: false,
-      message: 'Firebase not initialized'
+      message: 'Firebase not initialized - hardware offline',
+      lastHeartbeat: null
     };
   }
 
@@ -80,7 +83,7 @@ const getHardwareStatus = async () => {
     console.error('Error getting hardware status:', error);
     return {
       online: false,
-      message: 'Error checking hardware status',
+      message: 'Error checking hardware status - hardware offline',
       error: error.message
     };
   }

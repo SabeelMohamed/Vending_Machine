@@ -2,7 +2,6 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const path = require('path');
 
 // Load env vars
 dotenv.config();
@@ -13,12 +12,13 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+  origin: ['https://vending-machine18.onrender.com', 'https://vending-machine-r93c.onrender.com'],
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -28,14 +28,18 @@ app.use('/api/payment', require('./routes/payment'));
 app.use('/api/offline-payment', require('./routes/offlinePayment'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 
-// Handle SPA routing - send all non-API requests to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Basic route
+app.get('/', (req, res) => {
+  res.json({ message: 'Vending Machine API is running' });
 });
 
-// Basic API route
-app.get('/api', (req, res) => {
-  res.json({ message: 'Vending Machine API is running' });
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Error handler

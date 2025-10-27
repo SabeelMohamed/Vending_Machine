@@ -26,6 +26,7 @@ const requestOTPFromESP32 = async () => {
       
       // Check if OTP was updated recently (within last 10 seconds)
       if (otpData && typeof otpData === 'string' && otpData.length === 6) {
+        console.log('OTP received from ESP32');
         return otpData;
       }
       
@@ -134,49 +135,54 @@ const verifyOTPFromFirebase = async (userId, otp) => {
     throw new Error('Firebase database not initialized');
   }
   
-  // Get all OTPs for user
-  const otpsRef = db.ref(`otps/${userId}`);
-  const snapshot = await otpsRef.once('value');
-  const otps = snapshot.val();
-  
-  if (!otps) {
-    return { valid: false, message: 'No OTP found' };
-  }
-  
-  // Find matching OTP
-  const now = Date.now();
-  let matchedOTP = null;
-  let matchedTimestamp = null;
-  
-  for (const [timestamp, otpData] of Object.entries(otps)) {
-    if (otpData.otp === otp && !otpData.used && now < otpData.expiryTime) {
-      matchedOTP = otpData;
-      matchedTimestamp = timestamp;
-      break;
+  try {
+    // Get all OTPs for user
+    const otpsRef = db.ref(`otps/${userId}`);
+    const snapshot = await otpsRef.once('value');
+    const otps = snapshot.val();
+    
+    if (!otps) {
+      return { valid: false, message: 'No OTP found' };
     }
+    
+    // Find matching OTP
+    const now = Date.now();
+    let matchedOTP = null;
+    let matchedTimestamp = null;
+    
+    for (const [timestamp, otpData] of Object.entries(otps)) {
+      if (otpData.otp === otp && !otpData.used && now < otpData.expiryTime) {
+        matchedOTP = otpData;
+        matchedTimestamp = timestamp;
+        break;
+      }
+    }
+    
+    if (!matchedOTP) {
+      return { valid: false, message: 'Invalid or expired OTP' };
+    }
+    
+    // Mark OTP as used
+    await db.ref(`otps/${userId}/${matchedTimestamp}/used`).set(true);
+    await db.ref(`otps/${userId}/${matchedTimestamp}/usedAt`).set(new Date().toISOString());
+    
+    // Clear OTP from ESP32 display
+    await db.ref('live_otp').set({
+      otp: null,
+      displayMessage: 'Payment Verified!',
+      status: 'completed',
+      timestamp: Date.now()
+    });
+    
+    return {
+      valid: true,
+      message: 'OTP verified successfully',
+      orderData: matchedOTP.orderData
+    };
+  } catch (error) {
+    console.log('Error verifying OTP from Firebase:', error.message);
+    return { valid: false, message: 'OTP verification failed' };
   }
-  
-  if (!matchedOTP) {
-    return { valid: false, message: 'Invalid or expired OTP' };
-  }
-  
-  // Mark OTP as used
-  await db.ref(`otps/${userId}/${matchedTimestamp}/used`).set(true);
-  await db.ref(`otps/${userId}/${matchedTimestamp}/usedAt`).set(new Date().toISOString());
-  
-  // Clear OTP from ESP32 display
-  await db.ref('live_otp').set({
-    otp: null,
-    displayMessage: 'Payment Verified!',
-    status: 'completed',
-    timestamp: Date.now()
-  });
-  
-  return {
-    valid: true,
-    message: 'OTP verified successfully',
-    orderData: matchedOTP.orderData
-  };
 };
 
 /**

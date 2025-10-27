@@ -45,7 +45,7 @@ const OfflinePayment = () => {
   
   const checkHardwareStatus = async () => {
     try {
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/hardware-status')
+      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/hardware-status')
       const data = await response.json()
       
       if (data.success) {
@@ -106,7 +106,7 @@ const OfflinePayment = () => {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/generate-otp', {
+      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/generate-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,6 +127,8 @@ const OfflinePayment = () => {
         if (response.status === 429) {
           setCooldownTime(data.remainingTime || 30)
           setError(data.message)
+        } else if (response.status === 503) {
+          setError('Hardware not connected. Please ensure the vending machine is online.')
         } else {
           setError(data.message || 'Failed to generate OTP')
         }
@@ -162,7 +164,7 @@ const OfflinePayment = () => {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/verify-otp', {
+      const response = await fetch('https://vending-machine-app.onrender.com/api/offline-payment/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +287,7 @@ const OfflinePayment = () => {
                     disabled={!hardwareOnline || checkingHardware}
                     className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    I Accept
+                    {!hardwareOnline && !checkingHardware ? 'Hardware Offline' : 'I Accept'}
                   </button>
                 </div>
               </motion.div>
@@ -304,6 +306,15 @@ const OfflinePayment = () => {
                 <div className="flex flex-col items-center justify-center py-16">
                   <Loader className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                   <p className="text-slate-600">Generating OTP...</p>
+                </div>
+              ) : !hardwareOnline ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
+                  <p className="text-red-600 font-semibold mb-2">Hardware Offline</p>
+                  <p className="text-slate-600 text-center text-sm">
+                    The vending machine hardware is not connected.<br />
+                    Please ensure the ESP32 device is online.
+                  </p>
                 </div>
               ) : otpData ? (
                 <div className="space-y-6">
@@ -390,8 +401,8 @@ const OfflinePayment = () => {
                       setError('')
                     }}
                     placeholder="000000"
-                    className="w-full px-4 py-4 text-2xl font-bold text-center tracking-widest border-2 border-slate-300 rounded-xl focus:border-purple-600 focus:outline-none transition-colors"
-                    disabled={!otpData || verifying}
+                    className="w-full px-4 py-4 text-2xl font-bold text-center tracking-widest border-2 border-slate-300 rounded-xl focus:border-purple-600 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!otpData || verifying || !hardwareOnline}
                   />
                 </div>
 
@@ -404,7 +415,7 @@ const OfflinePayment = () => {
 
                 <button
                   onClick={handleVerifyOTP}
-                  disabled={!otpData || verifying || userOtpInput.length !== 6 || timeRemaining === 0}
+                  disabled={!otpData || verifying || userOtpInput.length !== 6 || timeRemaining === 0 || !hardwareOnline}
                   className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {verifying ? (
