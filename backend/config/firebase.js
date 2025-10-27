@@ -1,57 +1,40 @@
 const admin = require('firebase-admin');
 require('dotenv').config(); // Ensure environment variables are loaded
 
-// Initialize Firebase Admin SDK
-let firebaseApp;
 let db = null;
 
+const databaseURL = process.env.FIREBASE_DATABASE_URL;
+
+if (!databaseURL) {
+  console.error('FIREBASE_DATABASE_URL is not set in .env file');
+  // In a real app, you might want to throw an error or exit
+}
+
 try {
-  // Try to initialize with service account key file
-  const serviceAccount = require('./serviceAccountKey.json');
-  
-  const databaseURL = process.env.FIREBASE_DATABASE_URL;
-  
-  if (!databaseURL) {
-    console.error('FIREBASE_DATABASE_URL is not set in .env file');
-    throw new Error('FIREBASE_DATABASE_URL is required');
+  let serviceAccount;
+
+  // Production/Staging environment: Use environment variable
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.log('Initializing Firebase with service account from environment variable...');
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } 
+  // Local development: Use service account key file
+  else {
+    console.log('Initializing Firebase with service account from file...');
+    serviceAccount = require('./serviceAccountKey.json');
   }
-  
-  firebaseApp = admin.initializeApp({
+
+  admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: databaseURL
   });
-  
+
   db = admin.database();
   console.log('Firebase initialized successfully');
-  
+
 } catch (error) {
-  console.log('Service account key file not found, trying environment variable...');
-  
-  try {
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    const databaseURL = process.env.FIREBASE_DATABASE_URL;
-    
-    if (!databaseURL) {
-      console.error('FIREBASE_DATABASE_URL is not set in .env file');
-      throw new Error('FIREBASE_DATABASE_URL is required');
-    }
-    
-    if (serviceAccountKey) {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: databaseURL
-      });
-      
-      db = admin.database();
-      console.log('Firebase initialized successfully with environment variable');
-    } else {
-      console.error('Firebase credentials not configured. Please set up Firebase service account key.');
-    }
-  } catch (envError) {
-    console.error('Failed to initialize Firebase:', envError.message);
-  }
+  console.error('Failed to initialize Firebase:', error.message);
+  console.error('Firebase credentials not configured correctly. Please set up Firebase service account key either as a file (serviceAccountKey.json) or as a FIREBASE_SERVICE_ACCOUNT environment variable.');
 }
 
 module.exports = { admin, db };

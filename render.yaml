@@ -3,11 +3,12 @@ services:
     name: vending-machine-app
     env: node
     plan: starter
-    buildCommand: npm run build
-    startCommand: node server.js
-    rootDir: backend
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_OPTIONS
         value: --max_old_space_size=1024
+      - key: FIREBASE_SERVICE_ACCOUNT
+        value: "PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE"
