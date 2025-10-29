@@ -25,13 +25,18 @@ const isESP32Online = async () => {
     const lastHeartbeat = status.last_heartbeat || 0;
     const timeSinceHeartbeat = now - lastHeartbeat;
 
-    // Consider online if heartbeat within last 10 seconds (ESP32 sends every 5s)
-    const isOnline = status.esp32_online === 'true' && timeSinceHeartbeat < 10;
+    // Validate timestamp - if it's too old (before 2020) or in the future, consider invalid
+    const isValidTimestamp = lastHeartbeat > 1577836800 && lastHeartbeat < now + 60; // 2020-01-01 to now+1min
+    
+    // Consider online if ESP32 flag is true (supports boolean, string, numeric) AND recent heartbeat
+    const esp32FlagTrue = status.esp32_online === true || status.esp32_online === 'true' || status.esp32_online === 1 || status.esp32_online === '1';
+    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 10 : true);
 
     console.log('Hardware Status Check:');
     console.log('  Current time:', now);
     console.log('  Last heartbeat:', lastHeartbeat);
     console.log('  Time since heartbeat:', timeSinceHeartbeat, 'seconds');
+    console.log('  Valid timestamp:', isValidTimestamp);
     console.log('  ESP32 online flag:', status.esp32_online);
     console.log('  Is Online:', isOnline);
 
@@ -70,13 +75,20 @@ const getHardwareStatus = async () => {
     const now = Math.floor(Date.now() / 1000);
     const lastHeartbeat = status.last_heartbeat || 0;
     const timeSinceHeartbeat = now - lastHeartbeat;
-    const isOnline = status.esp32_online === 'true' && timeSinceHeartbeat < 10;
+    
+    // Validate timestamp - if it's too old (before 2020) or in the future, consider invalid
+    const isValidTimestamp = lastHeartbeat > 1577836800 && lastHeartbeat < now + 60; // 2020-01-01 to now+1min
+    
+    // Consider online if ESP32 flag is true (supports boolean, string, numeric) AND recent heartbeat
+    const esp32FlagTrue = status.esp32_online === true || status.esp32_online === 'true' || status.esp32_online === 1 || status.esp32_online === '1';
+    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 10 : true);
 
     return {
       online: isOnline,
       message: isOnline ? 'Hardware connected' : 'Hardware offline',
       lastHeartbeat: lastHeartbeat,
       timeSinceHeartbeat: timeSinceHeartbeat,
+      isValidTimestamp: isValidTimestamp,
       status: status.status || 'unknown'
     };
   } catch (error) {
