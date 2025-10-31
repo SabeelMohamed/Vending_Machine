@@ -28,6 +28,7 @@ const OfflinePayment = () => {
   const [cooldownTime, setCooldownTime] = useState(0)
   const [hardwareOnline, setHardwareOnline] = useState(false)
   const [checkingHardware, setCheckingHardware] = useState(true)
+  const [otpError, setOtpError] = useState('') // New state for OTP specific errors
 
   useEffect(() => {
     if (!cart || cart.length === 0) {
@@ -94,16 +95,9 @@ const OfflinePayment = () => {
     }
   }, [cooldownTime])
 
-  const handleConsentAccept = async () => {
-    setConsentGiven(true)
-    setShowConsentModal(false)
-    await generateOTP()
-  }
-
-  const generateOTP = async () => {
+  const requestOtp = async () => {
     setLoading(true)
-    setError('')
-
+    setOtpError('')
     try {
       const token = localStorage.getItem('token')
       const response = await fetch('https://vending-machine-r93c.onrender.com/api/offline-payment/generate-otp', {
@@ -126,15 +120,15 @@ const OfflinePayment = () => {
       if (!data.success) {
         if (response.status === 429) {
           setCooldownTime(data.remainingTime || 30)
-          setError(data.message)
+          setOtpError(data.message)
         } else if (response.status === 503) {
           if (data.message.includes('timeout')) {
-            setError('Hardware timeout: ESP32 did not respond. Please check hardware connection.')
+            setOtpError('Hardware timeout: ESP32 did not respond. Please check hardware connection.')
           } else {
-            setError('Hardware not connected. Please ensure the vending machine is online.')
+            setOtpError('Hardware not connected. Please ensure the vending machine is online.')
           }
         } else {
-          setError(data.message || 'Failed to generate OTP')
+          setOtpError(data.message || 'Failed to generate OTP')
         }
         setLoading(false)
         return
@@ -152,8 +146,20 @@ const OfflinePayment = () => {
       setLoading(false)
     } catch (error) {
       console.error('Generate OTP error:', error)
-      setError('Failed to generate OTP. Please try again.')
+      setOtpError('Failed to generate OTP. Please try again.')
       setLoading(false)
+    }
+  }
+
+  const handleConsentAccept = () => {
+    if (hardwareOnline) {
+      setConsentGiven(true)
+      setShowConsentModal(false)
+      setOtpError('') // Clear any previous OTP specific error
+      requestOtp() // Proceed with OTP generation
+    } else {
+      setOtpError('Failed to generate QR. Vending machine is offline.')
+      setShowConsentModal(false) // Close consent modal but show error on main screen
     }
   }
 
@@ -245,19 +251,7 @@ const OfflinePayment = () => {
                   Autopay Consent
                 </h2>
                 
-                {/* Hardware Status */}
-                <div className={`mb-4 p-3 rounded-xl flex items-center gap-2 ${
-                  checkingHardware ? 'bg-gray-100' : hardwareOnline ? 'bg-green-50' : 'bg-red-50'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${
-                    checkingHardware ? 'bg-gray-400' : hardwareOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-                  }`}></div>
-                  <span className={`text-sm font-medium ${
-                    checkingHardware ? 'text-gray-600' : hardwareOnline ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {checkingHardware ? 'Checking hardware...' : hardwareOnline ? 'Vending machine online' : 'Vending machine offline'}
-                  </span>
-                </div>
+                {/* REMOVED: Hardware Status from Consent Modal */}
                 
                 <div className="bg-slate-50 rounded-xl p-4 mb-6">
                   <p className="text-slate-700 text-sm leading-relaxed">
@@ -288,10 +282,9 @@ const OfflinePayment = () => {
                   </button>
                   <button
                     onClick={handleConsentAccept}
-                    disabled={!hardwareOnline || checkingHardware}
-                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg"
                   >
-                    {!hardwareOnline && !checkingHardware ? 'Hardware Offline' : 'I Accept'}
+                    I Accept
                   </button>
                 </div>
               </motion.div>
@@ -311,13 +304,12 @@ const OfflinePayment = () => {
                   <Loader className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                   <p className="text-slate-600">Generating OTP...</p>
                 </div>
-              ) : !hardwareOnline ? (
+              ) : otpError ? (
                 <div className="flex flex-col items-center justify-center py-16">
                   <AlertCircle className="w-16 h-16 text-red-400 mb-4" />
-                  <p className="text-red-600 font-semibold mb-2">Hardware Offline</p>
+                  <p className="text-red-600 font-semibold mb-2">Error</p>
                   <p className="text-slate-600 text-center text-sm">
-                    The vending machine hardware is not connected.<br />
-                    Please ensure the ESP32 device is online.
+                    {otpError}
                   </p>
                 </div>
               ) : otpData ? (
@@ -369,7 +361,7 @@ const OfflinePayment = () => {
 
                   {/* Regenerate OTP Button */}
                   <button
-                    onClick={generateOTP}
+                    onClick={requestOtp}
                     disabled={cooldownTime > 0}
                     className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
