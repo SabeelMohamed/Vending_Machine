@@ -30,12 +30,12 @@ Your vending machine now **automatically sends SMS alerts** when product stock r
 
 ```env
 # Twilio SMS Configuration
-TWILIO_ACCOUNT_SID=AC3139385454e205cbffc8345394d92070
-TWILIO_AUTH_TOKEN=029b31367e5a85da97c35399c6027df8
-TWILIO_PHONE_NUMBER=+18144581122
+TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
+TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
+TWILIO_PHONE_NUMBER=+1234567890
 
 # Admin Contact Information
-ADMIN_PHONE=+918946094723
+ADMIN_PHONE=+1234567890
 ADMIN_EMAIL=sabeelmohamedcm2023cce@sece.ac.in
 ```
 
