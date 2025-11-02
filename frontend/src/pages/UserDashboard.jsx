@@ -10,9 +10,11 @@ import {
   Filter,
   ShoppingBag,
   CreditCard,
-  Package
+  Package,
+  History
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import OrderHistory from '../components/OrderHistory'
 
 const UserDashboard = () => {
   const navigate = useNavigate()
@@ -21,6 +23,7 @@ const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [showCart, setShowCart] = useState(false)
+  const [showOrderHistory, setShowOrderHistory] = useState(false)
 
   const categories = ['All', 'Beverages', 'Snacks', 'Candy', 'Healthy', 'Other']
 
@@ -71,6 +74,8 @@ const UserDashboard = () => {
             ? { ...item, quantity: item.quantity + 1 }
             : item
         ))
+      } else {
+        alert(`Only ${product.quantity} units available for ${product.name}`)
       }
     } else {
       setCart([...cart, { ...product, quantity: 1 }])
@@ -81,6 +86,16 @@ const UserDashboard = () => {
     setCart(cart.map(item => {
       if (item._id === productId) {
         const newQuantity = item.quantity + change
+        
+        // Find the product to check available quantity
+        const product = products.find(p => p._id === productId)
+        
+        // Check if trying to increase beyond available stock
+        if (change > 0 && product && newQuantity > product.quantity) {
+          alert(`Only ${product.quantity} units available for ${product.name}`)
+          return item
+        }
+        
         return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
       }
       return item
@@ -126,7 +141,16 @@ const UserDashboard = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Order History Button */}
+              <button
+                onClick={() => setShowOrderHistory(true)}
+                className="p-3 bg-purple-100 hover:bg-purple-200 text-purple-600 rounded-xl transition-all shadow-md hover:shadow-lg"
+                title="Order History"
+              >
+                <History className="w-6 h-6" />
+              </button>
+
               {/* Cart Button */}
               <button
                 onClick={() => setShowCart(!showCart)}
@@ -384,6 +408,9 @@ const UserDashboard = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Order History Modal */}
+      <OrderHistory isOpen={showOrderHistory} onClose={() => setShowOrderHistory(false)} />
     </div>
   )
 }

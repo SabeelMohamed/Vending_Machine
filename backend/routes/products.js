@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const { protect, authorize } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
 
 // @route   GET /api/products
 // @desc    Get all products
@@ -123,6 +124,24 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
         runValidators: true
       }
     );
+
+    // Check if product stock is 3 or below after update
+    if (product.quantity <= 3 && product.quantity > 0) {
+      const adminPhone = process.env.ADMIN_PHONE;
+      if (adminPhone) {
+        const smsResult = await notificationService.sendLowStockSMS(
+          adminPhone,
+          product.name,
+          product.quantity,
+          product._id.toString()
+        );
+        if (smsResult.success) {
+          console.log(`🚨 Low stock SMS sent for ${product.name} (${product.quantity} left)`);
+        } else if (smsResult.cooldownActive) {
+          console.log(`⏳ SMS cooldown active for ${product.name} (${smsResult.remainingMinutes} min remaining)`);
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,

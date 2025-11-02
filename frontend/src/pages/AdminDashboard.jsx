@@ -11,9 +11,13 @@ import {
   Search,
   LogOut,
   X,
-  Save
+  Save,
+  BarChart3,
+  Users
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import AnalyticsDashboard from '../components/AnalyticsDashboard'
+import UserManagement from '../components/UserManagement'
 
 const AdminDashboard = () => {
   const navigate = useNavigate()
@@ -40,6 +44,7 @@ const AdminDashboard = () => {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [lowStockProducts, setLowStockProducts] = useState([])
 
   const categories = ['Beverages', 'Snacks', 'Candy', 'Healthy', 'Other']
 
@@ -60,6 +65,9 @@ const AdminDashboard = () => {
       const data = await response.json()
       if (data.success) {
         setProducts(data.data)
+        // Filter low stock products (≤3 units)
+        const lowStock = data.data.filter(p => p.quantity <= 3 && p.quantity > 0)
+        setLowStockProducts(lowStock)
       }
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -241,7 +249,54 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Low Stock Alert Banner */}
+        {lowStockProducts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl shadow-lg p-6 text-white"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Package className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    🚨 Low Stock Alert
+                    <span className="px-3 py-1 bg-white/20 rounded-full text-sm">
+                      {lowStockProducts.length} {lowStockProducts.length === 1 ? 'Product' : 'Products'}
+                    </span>
+                  </h3>
+                  <p className="text-white/90 mb-3">The following products need immediate restocking:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {lowStockProducts.map((product) => (
+                      <div
+                        key={product._id}
+                        className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg flex items-center gap-2"
+                      >
+                        <span className="font-semibold">{product.name}</span>
+                        <span className="px-2 py-0.5 bg-white/30 rounded-full text-sm font-bold">
+                          {product.quantity} left
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('products')}
+                className="px-4 py-2 bg-white text-red-600 font-semibold rounded-lg hover:bg-white/90 transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                <Package className="w-4 h-4" />
+                Manage Stock
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <motion.div
@@ -315,31 +370,59 @@ const AdminDashboard = () => {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="border-b border-slate-200">
-            <div className="flex">
+            <div className="flex overflow-x-auto">
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
+                  activeTab === 'analytics'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <BarChart3 className="w-5 h-5" />
+                Analytics
+              </button>
               <button
                 onClick={() => setActiveTab('products')}
-                className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
                   activeTab === 'products'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Product Management
+                <Package className="w-5 h-5" />
+                Products
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
                   activeTab === 'transactions'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Transaction History
+                <ShoppingCart className="w-5 h-5" />
+                Transactions
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 whitespace-nowrap ${
+                  activeTab === 'users'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Users className="w-5 h-5" />
+                Users
               </button>
             </div>
           </div>
 
           <div className="p-6">
+            {activeTab === 'analytics' && <AnalyticsDashboard />}
+            
+            {activeTab === 'users' && <UserManagement />}
+            
             {activeTab === 'products' && (
               <div>
                 {/* Search and Add Button */}

@@ -13,8 +13,9 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: ['https://vending-machine18.onrender.com', 'https://vending-machine-r93c.onrender.com'],
-  optionsSuccessStatus: 200
+  origin: ['https://vending-machine18.onrender.com', 'https://vending-machine-r93c.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
+  optionsSuccessStatus: 200,
+  credentials: true
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
@@ -27,6 +28,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/offline-payment', require('./routes/offlinePayment'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Basic route
 app.get('/', (req, res) => {

@@ -152,15 +152,12 @@ const OfflinePayment = () => {
   }
 
   const handleConsentAccept = () => {
-    if (hardwareOnline) {
-      setConsentGiven(true)
-      setShowConsentModal(false)
-      setOtpError('') // Clear any previous OTP specific error
-      requestOtp() // Proceed with OTP generation
-    } else {
-      setOtpError('Failed to generate QR. Vending machine is offline.')
-      setShowConsentModal(false) // Close consent modal but show error on main screen
-    }
+    setConsentGiven(true)
+    setShowConsentModal(false)
+    setOtpError('') // Clear any previous OTP specific error
+    
+    // Always proceed - let the requestOtp function handle hardware check
+    requestOtp()
   }
 
   const handleVerifyOTP = async () => {
@@ -212,6 +209,11 @@ const OfflinePayment = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Debug: Log cart and total
+  console.log('OfflinePayment - Cart:', cart);
+  console.log('OfflinePayment - Total:', total);
+  console.log('OfflinePayment - Show Consent Modal:', showConsentModal);
+
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -235,7 +237,8 @@ const OfflinePayment = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+              style={{ zIndex: 9999 }}
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}

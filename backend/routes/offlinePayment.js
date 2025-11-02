@@ -12,6 +12,7 @@ const {
   verifyOTPFromFirebase
 } = require('../utils/otpService');
 const { isESP32Online, getHardwareStatus } = require('../utils/hardwareStatus');
+const notificationService = require('../services/notificationService');
 
 // @route   POST /api/offline-payment/generate-otp
 // @desc    Generate OTP for offline payment (after user consent)
@@ -233,20 +234,43 @@ router.post('/verify-otp', protect, async (req, res) => {
     transaction.status = 'Completed';
     await transaction.save();
 
-    // Update product quantities
+    // Update product quantities and check for low stock
+    const lowStockProducts = [];
     for (const item of transaction.products) {
       const product = await Product.findById(item.product);
       if (product) {
         product.quantity -= item.quantity;
         product.isAvailable = product.quantity > 0;
         await product.save();
+
+        // Check if product stock is 3 or below
+        if (product.quantity <= 3 && product.quantity > 0) {
+          lowStockProducts.push(product);
+          
+          // Send SMS alert immediately (with cooldown)
+          const adminPhone = process.env.ADMIN_PHONE;
+          if (adminPhone) {
+            const smsResult = await notificationService.sendLowStockSMS(
+              adminPhone,
+              product.name,
+              product.quantity,
+              product._id.toString()
+            );
+            if (smsResult.success) {
+              console.log(`🚨 Low stock SMS sent for ${product.name} (${product.quantity} left)`);
+            } else if (smsResult.cooldownActive) {
+              console.log(`⏳ SMS cooldown active for ${product.name} (${smsResult.remainingMinutes} min remaining)`);
+            }
+          }
+        }
       }
     }
 
     res.status(200).json({
       success: true,
       message: 'Payment verified successfully',
-      data: transaction
+      data: transaction,
+      lowStockAlert: lowStockProducts.length > 0 ? `${lowStockProducts.length} product(s) reached low stock` : null
     });
   } catch (error) {
     console.error('Verify OTP error:', error);

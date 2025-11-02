@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
 const Product = require('../models/Product');
 const { protect } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -130,20 +131,43 @@ router.post('/verify', protect, async (req, res) => {
     transaction.status = 'Completed';
     await transaction.save();
 
-    // Update product quantities
+    // Update product quantities and check for low stock
+    const lowStockProducts = [];
     for (const item of transaction.products) {
       const product = await Product.findById(item.product);
       if (product) {
         product.quantity -= item.quantity;
         product.isAvailable = product.quantity > 0;
         await product.save();
+
+        // Check if product stock is 3 or below
+        if (product.quantity <= 3 && product.quantity > 0) {
+          lowStockProducts.push(product);
+          
+          // Send SMS alert immediately (with cooldown)
+          const adminPhone = process.env.ADMIN_PHONE;
+          if (adminPhone) {
+            const smsResult = await notificationService.sendLowStockSMS(
+              adminPhone,
+              product.name,
+              product.quantity,
+              product._id.toString()
+            );
+            if (smsResult.success) {
+              console.log(`🚨 Low stock SMS sent for ${product.name} (${product.quantity} left)`);
+            } else if (smsResult.cooldownActive) {
+              console.log(`⏳ SMS cooldown active for ${product.name} (${smsResult.remainingMinutes} min remaining)`);
+            }
+          }
+        }
       }
     }
 
     res.status(200).json({
       success: true,
       message: 'Payment verified successfully',
-      data: transaction
+      data: transaction,
+      lowStockAlert: lowStockProducts.length > 0 ? `${lowStockProducts.length} product(s) reached low stock` : null
     });
   } catch (error) {
     console.error('Verify payment error:', error);

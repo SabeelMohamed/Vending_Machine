@@ -1,11 +1,20 @@
 const { db } = require('../config/firebase');
 
+// DEVELOPMENT MODE: Set to true to bypass hardware check for testing
+const DEV_MODE_BYPASS_HARDWARE = process.env.DEV_MODE_BYPASS_HARDWARE === 'true';
+
 /**
  * Check if ESP32 hardware is online
  * ESP32 sends heartbeat every 5 seconds
  * If no heartbeat in last 15 seconds, consider offline
  */
 const isESP32Online = async () => {
+  // Development mode bypass
+  if (DEV_MODE_BYPASS_HARDWARE) {
+    console.log('⚠️  DEV MODE: Hardware check bypassed - simulating online hardware');
+    return true;
+  }
+
   if (!db) {
     console.log('Firebase not initialized, hardware is offline');
     return false;
@@ -30,7 +39,9 @@ const isESP32Online = async () => {
     
     // Consider online if ESP32 flag is true (supports boolean, string, numeric) AND recent heartbeat
     const esp32FlagTrue = status.esp32_online === true || status.esp32_online === 'true' || status.esp32_online === 1 || status.esp32_online === '1';
-    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 10 : true);
+    // If timestamp is valid, check if heartbeat is within 30 seconds (ESP32 sends every 5s, allows network delays)
+    // If timestamp is invalid but flag is true, trust the flag (for backwards compatibility)
+    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 30 : true);
 
     console.log('Hardware Status Check:');
     console.log('  Current time:', now);
@@ -51,6 +62,18 @@ const isESP32Online = async () => {
  * Get hardware status details
  */
 const getHardwareStatus = async () => {
+  // Development mode bypass
+  if (DEV_MODE_BYPASS_HARDWARE) {
+    return {
+      online: true,
+      message: '⚠️ DEV MODE: Hardware check bypassed',
+      lastHeartbeat: Math.floor(Date.now() / 1000),
+      timeSinceHeartbeat: 0,
+      isValidTimestamp: true,
+      status: 'simulated'
+    };
+  }
+
   if (!db) {
     return {
       online: false,
@@ -81,7 +104,9 @@ const getHardwareStatus = async () => {
     
     // Consider online if ESP32 flag is true (supports boolean, string, numeric) AND recent heartbeat
     const esp32FlagTrue = status.esp32_online === true || status.esp32_online === 'true' || status.esp32_online === 1 || status.esp32_online === '1';
-    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 10 : true);
+    // If timestamp is valid, check if heartbeat is within 30 seconds (ESP32 sends every 5s, allows network delays)
+    // If timestamp is invalid but flag is true, trust the flag (for backwards compatibility)
+    const isOnline = esp32FlagTrue && (isValidTimestamp ? timeSinceHeartbeat < 30 : true);
 
     return {
       online: isOnline,
